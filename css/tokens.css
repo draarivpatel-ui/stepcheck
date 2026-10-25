@@ -1,0 +1,35 @@
+/* Hallmark tokens for StepCheck · macrostructure: Workbench · tone: editorial manuscript · anchor hue: margin red 25
+ * The locked design tokens: warm ivory paper, deep ink, one margin red, a system
+ * serif stack. Every rule in style.css references these names; no inline color
+ * or font values below the token block.
+ */
+
+:root {
+  --paper: #f6efdd;
+  --paper-deep: #eee4cb;
+  --desk: #e7dcbd;
+  --ink: #2a2213;
+  --muted: #6f6250;
+  --line: #d8cba9;
+  --line-soft: #e4d9ba;
+  --red: #a2352a;
+  --red-deep: #7f271e;
+  --red-wash: #f3e0d8;
+
+  --font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', 'URW Palladio L', Georgia, serif;
+  --font-mono: 'SF Mono', 'Cascadia Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2.25rem;
+  --space-7: 3.5rem;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 140ms;
+  --dur: 240ms;
+
+  --radius: 2px;
+}
+

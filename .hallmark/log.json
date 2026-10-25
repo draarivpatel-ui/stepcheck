@@ -1,0 +1,10 @@
+[
+  {
+    "date": "2026-10-24",
+    "macrostructure": "Workbench",
+    "theme": "custom (manuscript: warm ivory paper, deep ink, margin red)",
+    "theme_axes": "light / classical-serif / warm-red",
+    "enrichment": "none (typography only; CSS typeset mathematics is the artifact)",
+    "brief": "StepCheck \u00b7 proof checker for algebra, United Hacks V8 pre-build"
+  }
+]

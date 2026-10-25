@@ -1,0 +1,10 @@
+{
+  "name": "stepcheck",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "StepCheck: a deterministic proof checker for beginning algebra. Static page, zero dependencies.",
+  "scripts": {
+    "test": "node --test tests/"
+  }
+}

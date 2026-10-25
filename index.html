@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="StepCheck: a local, deterministic proof checker for algebra. Write a proof one step at a time; each step is checked against a rule book and cited or corrected.">
+  <meta name="author" content="Aariv Patel">
+  <title>StepCheck: a proof checker for algebra</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f5eedd'/%3E%3Ctext x='6' y='24' font-family='Georgia, serif' font-size='22' fill='%23a2352a'%3E%E2%88%9A%3C/text%3E%3C/svg%3E">
+  <meta property="og:title" content="StepCheck: a proof checker for algebra">
+  <meta property="og:description" content="StepCheck: a local, deterministic proof checker for algebra. Write a proof one step at a time; each step is checked against a rule book and cited or corrected.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="StepCheck: a proof checker for algebra">
+  <meta name="twitter:description" content="StepCheck: a local, deterministic proof checker for algebra. Write a proof one step at a time; each step is checked against a rule book and cited or corrected.">
+</head>
+<body>
+  <noscript><p class="noscript-banner">JavaScript is required to run the local deterministic algebra proof checker and challenge workbench.</p></noscript>
+  <a class="skip-link" href="#step-input">Skip to the proof ladder</a>
+
+  <div class="sheet">
+    <header class="masthead">
+      <p class="mast-rule" aria-hidden="true"></p>
+      <h1>StepCheck</h1>
+      <p class="lede">A proof checker for algebra. Write a proof one step at a time: each step is parsed, tested against the rules of algebra, and cited by the rule that licenses it, or corrected with a reason and a counterexample.</p>
+      <p class="byline">A proof checker by Aariv Patel. Everything runs on this page: no network, no accounts, no grading server.</p>
+    </header>
+
+    <main>
+      <div class="workbench">
+        <nav class="challenge-rail" aria-label="Challenges">
+          <h2 id="challenges-heading">Challenges</h2>
+          <p class="rail-progress"><span id="progress-count">0</span> of 15 complete</p>
+          <ol class="challenge-list" id="challenge-list">
+            <!-- challenge buttons injected by app.js -->
+          </ol>
+        </nav>
+
+        <section class="ladder-panel" aria-labelledby="panel-title">
+          <header class="panel-head">
+            <h2 id="panel-title">Free practice</h2>
+            <p class="panel-given" id="panel-given"></p>
+          </header>
+
+          <div class="ladder-scroll">
+            <ol class="ladder" id="ladder" aria-label="Proof ladder"></ol>
+            <div class="done-note" id="done-note" hidden>
+              <p class="done-line">Proof complete.</p>
+              <p class="done-detail" id="done-detail"></p>
+            </div>
+          </div>
+
+          <form class="step-form" id="step-form">
+            <div class="input-row">
+              <label for="step-input" id="step-label">Your step</label>
+              <div class="input-wrap">
+                <input type="text" id="step-input" name="step" autocomplete="off" spellcheck="false"
+                       placeholder="write the next step, like x = 5 or x = 3 or x = -3"
+                       aria-describedby="syntax-hint">
+                <button type="submit" class="btn btn-primary" id="add-step">Add step</button>
+              </div>
+            </div>
+            <p class="syntax-hint" id="syntax-hint">Powers with ^, roots with sqrt(9) or the radical sign, absolute value with bars, both roots joined by or.</p>
+            <div class="form-tools">
+              <button type="button" class="btn btn-quiet" id="undo-step">Undo</button>
+              <button type="button" class="btn btn-quiet" id="reset-proof">Reset</button>
+              <button type="button" class="btn btn-quiet" id="show-hint" aria-expanded="false" aria-controls="hint-text">Hint</button>
+            </div>
+          </form>
+
+          <p class="hint-text" id="hint-text" hidden></p>
+          <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+        </section>
+      </div>
+
+      <section class="notation" aria-labelledby="notation-heading">
+        <h2 id="notation-heading">Notation the parser accepts</h2>
+        <ul class="notation-list">
+          <li><strong>Equations</strong> use one = sign: <code>2x + 3 = 11</code>. Two roots are joined by <code>or</code>: <code>x = 7 or x = -7</code>.</li>
+          <li><strong>Powers</strong> use ^ or superscripts: <code>x^2</code> and x&#178; are the same. Exponent 1/2 becomes a square root.</li>
+          <li><strong>Roots and absolute value</strong>: <code>sqrt(2x + 3)</code>, the radical sign with a number or bracketed group, and bars: <code>|x - 3|</code>.</li>
+          <li><strong>Fractions</strong> use /: <code>x/2</code>. Decimals are exact: 0.5 is kept as 1/2.</li>
+          <li><strong>Finishing</strong>: when an equation has no real solution, write <code>no solution</code>.</li>
+        </ul>
+      </section>
+
+      <section class="rulebook" aria-labelledby="rulebook-heading">
+        <h2 id="rulebook-heading">Rule Book</h2>
+        <p class="rulebook-lede">Every rule the engine applies, each with a worked example. The examples are checked by the engine on this page load; the verdict is printed under each one.</p>
+        <div class="rule-grid" id="rule-grid">
+          <!-- rule articles injected by app.js -->
+        </div>
+      </section>
+    </main>
+
+    <footer class="colophon">
+      <p>StepCheck, a proof checker for beginning algebra. Author: Aariv Patel.</p>
+      <p>The engine parses each step, rewrites both sides in exact rational arithmetic, and names the rule that licenses the move or explains the failure with a counterexample. Static page, no dependencies, no data leaves the browser.</p>
+    </footer>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
