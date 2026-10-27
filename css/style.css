@@ -117,9 +117,10 @@ body::before {
 .rail-progress {
   color: var(--muted);
   font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
   margin: 0 0 var(--space-3);
 }
-.rail-progress span { color: var(--red); font-weight: 600; }
+.rail-progress span { color: var(--red); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .challenge-list {
   list-style: none;
@@ -153,6 +154,7 @@ body::before {
   color: var(--red);
   font-size: 1.2rem;
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
   text-align: right;
   padding-right: 0.35rem;
   transition: transform var(--dur-fast) var(--ease);
@@ -278,12 +280,14 @@ summary:focus-visible {
   color: var(--muted);
   font-size: 1.35rem;
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 li.given-row .step-no { color: var(--red); }
 
 .step-math {
   grid-column: 2;
   font-size: 1.22rem;
+  font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
   min-width: 0;
 }
@@ -316,7 +320,7 @@ li.given-row .step-cite { transform: none; }
   font-weight: 600;
   font-size: 1.1rem;
 }
-.done-detail { margin: 2px 0 0; color: var(--muted); font-size: 0.95rem; }
+.done-detail { margin: 2px 0 0; color: var(--muted); font-size: 0.95rem; font-variant-numeric: tabular-nums; }
 
 /* --------------------------------------------------------------------------
    Step form
@@ -342,6 +346,7 @@ li.given-row .step-cite { transform: none; }
   min-width: 0;
   font: inherit;
   font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
   color: var(--ink);
   background: var(--paper);
   border: 0;
@@ -443,7 +448,7 @@ li.given-row .step-cite { transform: none; }
    Math typesetting (CSS only)
    -------------------------------------------------------------------------- */
 
-.math { white-space: nowrap; }
+.math { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .step-math .math, .panel-given .math, .ex-math .math { white-space: normal; }
 
 .mv { font-style: italic; padding-right: 0.02em; }
@@ -548,7 +553,7 @@ li.given-row .step-cite { transform: none; }
 .rule-card summary:hover { background: var(--paper-deep); }
 .rule-card[open] summary { background: var(--paper-deep); }
 
-.rule-card .rnum { color: var(--red); font-size: 1.15rem; text-align: right; }
+.rule-card .rnum { color: var(--red); font-size: 1.15rem; text-align: right; font-variant-numeric: tabular-nums; }
 .rule-card .rname { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .rule-card .rtoggle { color: var(--muted); text-align: right; }
 .rule-card[open] .rtoggle::after { content: '\2212'; }

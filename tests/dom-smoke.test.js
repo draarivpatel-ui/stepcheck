@@ -15,6 +15,7 @@ const indexHtml = fs.readFileSync(path.join(repoRoot, 'index.html'), 'utf8');
 const styleCss = fs.readFileSync(path.join(repoRoot, 'css/style.css'), 'utf8');
 const appJs = fs.readFileSync(path.join(repoRoot, 'js/app.js'), 'utf8');
 const notesMd = fs.readFileSync(path.join(repoRoot, 'NOTES.md'), 'utf8');
+const readmeMd = fs.readFileSync(path.join(repoRoot, 'README.md'), 'utf8');
 
 test('DOM Smoke 01: index.html starts with HTML5 doctype and lang=en', () => {
   assert.match(indexHtml.trimStart(), /^<!DOCTYPE html>/i);
@@ -94,17 +95,19 @@ test('DOM Smoke 09: all DOM IDs looked up via getElementById in js/app.js exist 
   }
 });
 
-test('DOM Smoke 10: css/style.css enforces overflow-x: clip, focus-visible outline, and reduced-motion guard', () => {
+test('DOM Smoke 10: css/style.css enforces overflow-x: clip, focus-visible outline, tabular-nums, and reduced-motion guard', () => {
   assert.match(styleCss, /overflow-x:\s*clip/);
   assert.match(styleCss, /:focus-visible\s*\{[\s\S]*?outline:/);
+  assert.match(styleCss, /tabular-nums/);
   assert.match(styleCss, /@media\s*\(prefers-reduced-motion:\s*reduce\)/);
 });
 
-test('DOM Smoke 11: zero em-dashes, en-dashes, or emoji across index.html, css/style.css, js/app.js, and NOTES.md', () => {
+test('DOM Smoke 11: zero em-dashes, en-dashes, or emoji across index.html, css/style.css, js/app.js, README.md, and NOTES.md', () => {
   assert.equal(/[\u2013\u2014]/.test(indexHtml), false);
   assert.equal(/[\u2013\u2014]/.test(styleCss), false);
   assert.equal(/[\u2013\u2014]/.test(appJs), false);
   assert.equal(/[\u2013\u2014]/.test(notesMd), false);
+  assert.equal(/[\u2013\u2014]/.test(readmeMd), false);
   const emojiRegex = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u;
   assert.equal(emojiRegex.test(indexHtml), false);
   assert.equal(emojiRegex.test(styleCss), false);
