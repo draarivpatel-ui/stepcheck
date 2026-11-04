@@ -15,14 +15,25 @@ export class ParseError extends Error {
 const SUPS = { '\u00b2': 2, '\u00b3': 3, '\u2074': 4, '\u2075': 5, '\u2076': 6 };
 const MULS = ['\u00d7', '\u00b7', '\u2219', '\u22c5'];
 
+export const PARSE_LIMITS = Object.freeze({ characters: 2048, tokens: 512, nesting: 32, numberDigits: 128 });
+
 // ---------------------------------------------------------------------------
 // Tokenizer
 // ---------------------------------------------------------------------------
 
 export function tokenize(src) {
+  if (typeof src !== 'string') throw new ParseError('type a step first', 0);
+  if (src.length > PARSE_LIMITS.characters) throw new ParseError('a step may contain at most 2048 characters', PARSE_LIMITS.characters);
   const toks = [];
   let i = 0;
-  const push = (tt, v, pos, text) => toks.push({ tt, v, pos, text: text ?? v });
+  let nesting = 0;
+  const push = (tt, v, pos, text) => {
+    if (toks.length >= PARSE_LIMITS.tokens) throw new ParseError('this step has too many tokens; use shorter steps', pos);
+    if (tt === 'lparen' && ++nesting > PARSE_LIMITS.nesting) throw new ParseError('parentheses may nest at most 32 levels', pos);
+    if (tt === 'rparen') nesting -= 1;
+    if (tt === 'num' && v.replace('.', '').length > PARSE_LIMITS.numberDigits) throw new ParseError('a number may contain at most 128 digits', pos);
+    toks.push({ tt, v, pos, text: text ?? v });
+  };
 
   while (i < src.length) {
     const ch = src[i];
@@ -367,6 +378,7 @@ const NONE_RE = /^no\s+(?:real\s+)?solution\.?$/i;
 
 export function parseStep(input) {
   if (typeof input !== 'string') throw new ParseError('type a step first', 0);
+  if (input.length > PARSE_LIMITS.characters) throw new ParseError('a step may contain at most 2048 characters', PARSE_LIMITS.characters);
   const s = input.trim();
   if (!s) throw new ParseError('type a step first', 0);
   if (NONE_RE.test(s)) return { kind: 'none' };
@@ -449,7 +461,7 @@ export function astToPlain(node) {
         }, '');
     }
     case 'div': return child(node.a, 2) + '/' + child(node.b, 3);
-    case 'pow': return child(node.a, 4) + '^' + (node.e.isNeg() ? '(' + node.e.toString() + ')' : node.e.toString());
+    case 'pow': return child(node.a, 5) + '^' + (node.e.isNeg() ? '(' + node.e.toString() + ')' : node.e.toString());
     case 'sqrt': return 'sqrt(' + astToPlain(node.a) + ')';
     case 'abs': return '|' + astToPlain(node.a) + '|';
     case 'eq': return child(node.a, 1) + ' = ' + child(node.b, 1);

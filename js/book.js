@@ -29,6 +29,11 @@ export const BOOK = [
     say: 'Terms with the same variable part merge. The engine checks the merge by expanding both sides.'
   },
   {
+    ruleId: 'rearrange',
+    worked: { prev: 'x + y', cur: 'y + x' },
+    say: 'Reordering addition terms preserves the exact value by commutativity. Existing domain restrictions remain in force.'
+  },
+  {
     ruleId: 'distribute',
     worked: { prev: '2(x + 5) = 16', cur: '2x + 10 = 16' },
     say: 'The factor 2 multiplies both terms of the sum. Expanding a squared binomial counts here too.'

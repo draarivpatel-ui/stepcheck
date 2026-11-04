@@ -139,6 +139,7 @@ export const CHALLENGES = [
     id: 'c15',
     tier: 'quadratics',
     title: 'Derive the quadratic formula',
+    assumptions: { nonzero: ['a'], nonnegative: ['b^2 - 4ac'] },
     given: 'ax^2 + bx + c = 0',
     target: 'x = (-b + sqrt(b^2 - 4ac))/(2a) or x = (-b - sqrt(b^2 - 4ac))/(2a)',
     hint: 'Multiply by 4a, add b^2 to both sides, collapse the perfect square, take both roots, then divide by 2a.',

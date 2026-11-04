@@ -65,8 +65,8 @@ test('rationals keep exact fractions', () => {
 // Rule catalog coverage
 // ---------------------------------------------------------------------------
 
-test('all thirteen rules are in the catalog', () => {
-  assert.equal(RULES.length, 13);
+test('all fourteen rules are in the catalog', () => {
+  assert.equal(RULES.length, 14);
   for (const r of RULES) {
     assert.ok(r.id && r.name && r.statement, 'rule ' + r.id + ' needs metadata');
   }
@@ -89,8 +89,12 @@ test('multiplication property: positive, division, and negatives', () => {
 });
 
 test('multiplication by an expression carries the domain note', () => {
-  const r = ok('ax^2 + bx + c = 0', '4a^2x^2 + 4abx + 4ac = 0', 'mul');
+  const r = checkPair('ax^2 + bx + c = 0', '4a^2x^2 + 4abx + 4ac = 0', { nonzero: ['a'] });
+  assert.equal(r.ok, true);
+  assert.equal(r.conditional, true);
+  assert.equal(r.ruleId, 'mul');
   assert.match(r.note, /nonzero|defined/);
+  assert.match(r.note, /a != 0/);
 });
 
 test('symmetry of equality: positive and negative', () => {

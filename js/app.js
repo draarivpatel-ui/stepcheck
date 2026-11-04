@@ -201,7 +201,7 @@ function okVerdict(ruleId, note) {
   p.className = 'verdict';
   const strong = document.createElement('strong');
   strong.textContent = rule ? rule.name : 'Accepted';
-  p.appendChild(document.createTextNode('Holds by '));
+  p.appendChild(document.createTextNode(note.includes('Retain domain:') ? 'Holds on the stated domain by ' : 'Holds by '));
   p.appendChild(strong);
   if (note) p.appendChild(document.createTextNode(': ' + note + '.'));
   else p.appendChild(document.createTextNode('.'));
@@ -262,6 +262,10 @@ function selectChallenge(id) {
 
   els.hintText.hidden = true;
   els.hintText.textContent = challenge.hint || 'There is no hint in free practice; the Rule Book below is your reference.';
+  if (challenge.assumptions) {
+    const assumptions = [...(challenge.assumptions.nonzero || []).map((value) => value + ' != 0'), ...(challenge.assumptions.nonnegative || []).map((value) => value + ' >= 0')];
+    els.panelGiven.appendChild(document.createTextNode(' Assumptions: ' + assumptions.join(', ') + '.'));
+  }
   els.hintBtn.hidden = !challenge.hint;
   refreshRail();
   setFeedback('', null);
@@ -313,12 +317,14 @@ function submitStep() {
   }
 
   const prev = state.steps[state.steps.length - 1].step;
-  const verdict = checkStep(prev, cur);
+  const verdict = checkStep(prev, cur, currentChallenge().assumptions || {});
 
   if (!verdict.ok) {
     setFeedback('error', errorVerdict(verdict.message, raw, -1));
     return;
   }
+
+  cur.conditions = verdict.conditions;
 
   const challenge = currentChallenge();
   const reachedTarget = challenge.target

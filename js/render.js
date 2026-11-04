@@ -4,6 +4,11 @@
 // stack. All output is generated from parsed tokens, so it is safe to inject.
 
 import { Rat } from './algebra.js';
+import { parseStep } from './parse.js';
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+}
 
 function precOf(node) {
   switch (node.t) {
@@ -58,7 +63,7 @@ function strip(html) {
 export function astToMath(node) {
   switch (node.t) {
     case 'num': return ratHtml(node.v);
-    case 'var': return '<i class="mv">' + node.name + '</i>';
+    case 'var': return '<i class="mv">' + escapeHtml(node.name) + '</i>';
     case 'chain': {
       let out = wrap(astToMath(node.head), precOf(node.head), 1);
       for (const r of node.rest) {
@@ -91,7 +96,7 @@ export function astToMath(node) {
         + '<span class="mden">' + astToMath(node.b) + '</span></span>';
     }
     case 'pow': {
-      const base = wrap(astToMath(node.a), precOf(node.a), 4);
+      const base = wrap(astToMath(node.a), precOf(node.a), 5);
       const exp = ratHtml(node.e);
       return base + '<sup class="mexp">' + exp + '</sup>';
     }

@@ -1,33 +1,43 @@
 # StepCheck
 
-StepCheck is a local, deterministic proof checker for beginning algebra delivered as a zero-dependency static web page. You write an algebraic derivation one step at a time; the engine parses each step, canonicalizes both sides in exact rational arithmetic, verifies whether the step follows from the previous line under a catalog of thirteen rules, and either cites the licensing property in the margin or explains the error with a concrete counterexample.
+A local exact-arithmetic algebra step checker. Write a derivation one line at a time; the engine parses each step, checks an applicable rule, and explains rejected moves. Fourteen documented rules and fifteen challenges ship in a zero-dependency static application.
 
-## Features
+## Run
 
-1. **Step Parser (`js/parse.js`):** Hand-written tokenizer and recursive descent parser supporting linear and quadratic equations, bare simplification expressions, square roots (`sqrt(...)` and radical signs), absolute value bars (`|...|`), integer and `1/2` exponents (`^` and Unicode superscripts), exact decimals, implicit multiplication, compound `or` branches (`x = 7 or x = -7`), and `no solution`. Parse errors underline the exact offending character position.
-2. **Exact Symbolic Equivalence Engine (`js/algebra.js`, `js/rules.js`):** Canonicalizes expressions using BigInt rationals, multivariate polynomials over the rationals, cross-multiplied rational functions, and a radical/absolute-value term algebra. Checks thirteen algebraic rules in priority order (`Addition Property`, `Multiplication Property`, `Symmetry of Equality`, `Evaluate Arithmetic`, `Combine Like Terms`, `Distributive Property`, `Factoring`, `Complete the Square`, `Power Rule`, `Square Root Rule`, `Absolute Value Rule`, `Zero Product Property`, and `Quadratic Formula`).
-3. **Diagnostic Counterexamples and Trap Detection:** Catches classic algebraic pitfalls with specific explanations, including squaring both sides (extraneous roots), dropping the negative root of `x^2 = k`, dividing by a variable expression that can erase a root, or changing only one side of an equation. When a step loses a root, the engine probes rational test points and names the lost solution.
-4. **Fifteen Graded Challenges (`js/challenges.js`):** Organized across three tiers (`Linear & Distribute`, `Fractions, Roots & Bars`, and `Quadratics & Derivation`), culminating in a full seven-step symbolic derivation of the quadratic formula from `ax^2 + bx + c = 0`. Also includes a free-practice mode starting from any statement you enter.
-5. **Self-Verifying Rule Book (`js/book.js`):** Every rule in the catalog is documented with domain notes and a two-line worked example that the engine checks live on page load.
+Use Node 22 or newer. Serve the folder over HTTP; opening its module scripts directly through a file URL is not supported.
 
-## Running Locally
-
-Open `index.html` in a browser or serve the folder over a local static server:
-
-```bash
+```sh
 python3 -m http.server 8080
-```
-
-Run the automated test suite with Node's built-in test runner:
-
-```bash
 npm test
+npm run test:coverage
 ```
 
-## Honest Scope and Limits
+Open http://localhost:8080. All computation stays in browser memory. No account, API, analytics or external library is required.
 
-StepCheck is deliberately conservative: two expressions are accepted as equal only when exact polynomial and rational canonicalization proves it. It covers beginning and intermediate single-variable algebra plus symbolic parameters (`a`, `b`, `c`) for the quadratic formula derivation. Everything runs locally in browser memory with no network calls, no external libraries, and no accounts.
+## Exactness and domains
 
-## License
+The js/parse.js module parses equations, expressions, roots, absolute values, exact decimals, integer powers, or branches and no solution. The js/algebra.js module uses BigInt rationals and bounded symbolic polynomials. The js/rules.js module checks transformations; js/domain.js retains denominator and radical restrictions even when simplification cancels their syntax.
 
-MIT License. Copyright (c) 2026 Aariv Patel.
+Variable multiplication or division is not accepted without a supported explicit nonzero assumption. Squaring a negative square-root equation is rejected. Negative integer powers raise the entire reciprocal, not just its first power. The quadratic-formula challenge visibly assumes a != 0 and b^2 - 4ac >= 0; its conclusions are on that real domain, not a claim covering every parameter assignment.
+
+The developer API can supply supported assumptions:
+
+```js
+checkPair("x = 1", "x^2 = x", { nonzero: ["x"] });
+```
+
+That result is conditional and returns its retained domain. A caller chaining prepared steps must preserve verdict.conditions on the next step, as the application does. Free practice does not silently add assumptions.
+
+## Verification
+
+The offline suite passes 117 tests on Node 24.16.0, including 400 seeded linear cases within a regression test. It checks all challenge paths, all fourteen rule-book entries, negative powers, retained domains, zero-product traps, renderer escaping, parser limits and bounded expansions. Shared headless Chromium tests exercise the actual form, rejection paths, undo and the complete quadratic derivation. See [ENGINEERING.md](ENGINEERING.md).
+
+## Limits and honesty
+
+This is a conservative bounded subset, not a complete computer algebra system or general theorem prover. Maximums are 2,048 input characters, 512 tokens, 32 parenthesis levels, 128 digits per input number, integer exponents from -16 through 16, polynomial degree 256, 512 symbolic terms and 100,000 products per multiplication. Exact rationals have a 4,096-digit component limit. Unsupported steps may be rejected even when valid.
+
+Numeric counterexamples are deterministic diagnostic probes. Finding one disproves a candidate; not finding one never proves it. Domain conditions are required for accepted rewrites, and inherited restrictions remain visible. Repeated roots and duplicate or branches are not generally collapsed by the current interface.
+
+This is AI-assisted software. Automated checks do not establish human authorship, classroom outcomes, contest eligibility, deployment or rewards. The project predates any newly selected build window and must be disclosed as pre-existing where required.
+
+MIT license. Copyright (c) 2026 Aariv Patel.

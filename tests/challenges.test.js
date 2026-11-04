@@ -35,9 +35,10 @@ for (const c of CHALLENGES) {
       const cur = prepareStep(c.path[i]);
       assert.notEqual(cur.kind, 'error',
         'step ' + (i + 1) + ' (' + c.path[i] + ') fails to parse: ' + (cur.error && cur.error.message));
-      const v = checkStep(prev, cur);
+      const v = checkStep(prev, cur, c.assumptions || {});
       assert.equal(v.ok, true,
         'step ' + (i + 1) + ' (' + c.path[i] + ') rejected: ' + (v.message || ''));
+      cur.conditions = v.conditions;
       prev = cur;
     }
     assert.equal(sameStep(target, prev), true, c.id + ' path must end at the target');

@@ -117,8 +117,8 @@ test('DOM Smoke 11: zero em-dashes, en-dashes, or emoji across index.html, css/s
 test('DOM Smoke 12: UI math renderer and proof engine execute cleanly across all challenges and rule book entries', () => {
   assert.equal(TIERS.length, 3);
   assert.equal(CHALLENGES.length, 15);
-  assert.equal(RULES.length, 13);
-  assert.equal(BOOK.length, 13);
+  assert.equal(RULES.length, 14);
+  assert.equal(BOOK.length, 14);
 
   for (const c of CHALLENGES) {
     const givenStep = prepareStep(c.given);

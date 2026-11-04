@@ -12,6 +12,15 @@ export class EngineError extends Error {
   }
 }
 
+export const ALGEBRA_LIMITS = Object.freeze({ exponent: 16, degree: 256, terms: 512, products: 100000, rationalDigits: 4096 });
+
+function exponentNumber(e) {
+  if (!e.isInt() || e.n > BigInt(ALGEBRA_LIMITS.exponent) || e.n < -BigInt(ALGEBRA_LIMITS.exponent)) {
+    throw new EngineError('whole-number exponents must be between -16 and 16', 'limit');
+  }
+  return Number(e.n);
+}
+
 // ---------------------------------------------------------------------------
 // Rationals
 // ---------------------------------------------------------------------------
@@ -26,6 +35,8 @@ function bigGcd(a, b) {
 
 export class Rat {
   constructor(n, d) {
+    if (typeof n !== 'bigint' || typeof d !== 'bigint') throw new EngineError('rational components must be BigInt values');
+    if (n.toString().length > ALGEBRA_LIMITS.rationalDigits || d.toString().length > ALGEBRA_LIMITS.rationalDigits) throw new EngineError('exact numbers exceeded the arithmetic size limit', 'limit');
     if (d === 0n) throw new EngineError('division by zero is undefined', 'domain');
     if (d < 0n) { n = -n; d = -d; }
     const g = bigGcd(n, d) || 1n;
@@ -91,6 +102,7 @@ export function monsFromKey(key) {
 }
 
 export function keyOfMons(mons) {
+  if (mons.some(([, e]) => !Number.isSafeInteger(e) || e < 0) || mons.reduce((sum, [, e]) => sum + e, 0) > ALGEBRA_LIMITS.degree) throw new EngineError('polynomial degree exceeds 256', 'limit');
   const clean = mons.filter(([, e]) => e > 0);
   if (clean.length === 0) return '1';
   clean.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] - b[1]));
@@ -99,7 +111,10 @@ export function keyOfMons(mons) {
 
 export class MPoly {
   // terms: Map<key, Rat>
-  constructor(terms) { this.terms = terms; }
+  constructor(terms) {
+    if (terms.size > ALGEBRA_LIMITS.terms) throw new EngineError('polynomial expansion exceeds 512 terms', 'limit');
+    this.terms = terms;
+  }
   static zero() { return new MPoly(new Map()); }
   static rat(r) {
     if (r.isZero()) return MPoly.zero();
@@ -115,6 +130,7 @@ export class MPoly {
       const cur = out.terms.get(k);
       const sum = cur ? cur.add(c) : c;
       if (sum.isZero()) out.terms.delete(k); else out.terms.set(k, sum);
+      if (out.terms.size > ALGEBRA_LIMITS.terms) throw new EngineError('polynomial expansion exceeds 512 terms', 'limit');
     }
     return out;
   }
@@ -125,6 +141,7 @@ export class MPoly {
   }
   sub(o) { return this.add(o.neg()); }
   mul(o) {
+    if (this.terms.size * o.terms.size > ALGEBRA_LIMITS.products) throw new EngineError('polynomial multiplication exceeds the operation limit', 'limit');
     const out = new Map();
     for (const [k1, c1] of this.terms) {
       for (const [k2, c2] of o.terms) {
@@ -133,6 +150,7 @@ export class MPoly {
         const cur = out.get(k);
         const sum = cur ? cur.add(c1.mul(c2)) : c1.mul(c2);
         if (sum.isZero()) out.delete(k); else out.set(k, sum);
+        if (out.size > ALGEBRA_LIMITS.terms) throw new EngineError('polynomial expansion exceeds 512 terms', 'limit');
       }
     }
     return new MPoly(out);
@@ -144,7 +162,7 @@ export class MPoly {
     return new MPoly(out);
   }
   pow(e) {
-    if (!Number.isInteger(e) || e < 0) throw new EngineError('polynomial powers must be whole numbers');
+    if (!Number.isInteger(e) || e < 0 || e > ALGEBRA_LIMITS.exponent) throw new EngineError('polynomial powers must be whole numbers from 0 through 16', 'limit');
     let out = MPoly.rat(Rat.int(1));
     for (let i = 0; i < e; i++) out = out.mul(this);
     return out;
@@ -243,6 +261,8 @@ export function polyExactDivide(a, b) {
     const ltR = leadTerm(rest);
     const ltB = leadTerm(b);
     const bMap = new Map(monsFromKey(ltB[0]));
+    const rMap = new Map(monsFromKey(ltR[0]));
+    if ([...bMap].some(([name, power]) => (rMap.get(name) || 0) < power)) return null;
     let divisible = true;
     const qMons = monsFromKey(ltR[0]).map(([n, e]) => {
       const be = bMap.get(n) || 0;
@@ -368,7 +388,10 @@ function unitMul(u1, u2) {
 
 export class Val {
   // terms: array of {cf: RF, u: unit}, sorted by unit key, no zero cf.
-  constructor(terms) { this.terms = terms; }
+  constructor(terms) {
+    if (terms.length > ALGEBRA_LIMITS.terms) throw new EngineError('symbolic expansion exceeds 512 terms', 'limit');
+    this.terms = terms;
+  }
   static zero() { return new Val([]); }
   static rat(r) { return r.isZero() ? Val.zero() : new Val([{ cf: RF.rat(r), u: ONE }]); }
   static rf(f) { return f.isZero() ? Val.zero() : new Val([{ cf: f, u: ONE }]); }
@@ -381,6 +404,7 @@ export class Val {
       const cur = map.get(k);
       const sum = cur ? cur.add(cf) : cf;
       if (sum.isZero()) map.delete(k); else map.set(k, sum);
+      if (map.size > ALGEBRA_LIMITS.terms) throw new EngineError('symbolic expansion exceeds 512 terms', 'limit');
     }
     const out = [...map.entries()]
       .map(([k, cf]) => ({ cf, u: unitFromKeyPrefix(k) }))
@@ -399,6 +423,7 @@ export class Val {
     return new Val(this.terms.map((t) => ({ cf: t.cf.scale(r), u: t.u })));
   }
   mul(o) {
+    if (this.terms.length * o.terms.length > ALGEBRA_LIMITS.products) throw new EngineError('symbolic multiplication exceeds the operation limit', 'limit');
     const terms = [];
     for (const a of this.terms) {
       for (const b of o.terms) {
@@ -515,7 +540,7 @@ export function valPow(a, e) {
     if (e.n === 1n && e.d === 2n) return valSqrt(a);
     throw new EngineError('fractional exponents other than 1/2 are not supported; use sqrt( ) for square roots', 'unsupported');
   }
-  const n = Number(e.n);
+  const n = exponentNumber(e);
   if (n === 0) {
     if (a.isZero()) throw new EngineError('zero raised to the zero power is undefined', 'domain');
     return Val.rat(Rat.int(1));
@@ -531,7 +556,7 @@ export function valPow(a, e) {
     throw new EngineError('negative exponents are only supported on plain expressions in this subset', 'unsupported');
   }
   if (f.num.isZero()) throw new EngineError('division by zero is undefined', 'domain');
-  return Val.rf(new RF(f.den, f.num));
+  return Val.rf(new RF(f.den.pow(-n), f.num.pow(-n)));
 }
 
 export function valSqrt(a) {
@@ -632,7 +657,9 @@ export function evalAstRat(ast, env) {
     case 'pow': {
       const a = evalAstRat(ast.a, env);
       if (!a || !ast.e.isInt()) return null;
-      const n = Number(ast.e.n);
+      let n;
+      try { n = exponentNumber(ast.e); } catch { return null; }
+      if (n === 0 && a.isZero()) return null;
       if (n < 0) {
         if (a.isZero()) return null;
         let acc = Rat.int(1);

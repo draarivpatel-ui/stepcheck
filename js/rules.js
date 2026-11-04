@@ -7,6 +7,7 @@ import {
   valEqual, varsOfAst, evalAstRat, monsFromKey
 } from './algebra.js';
 import { parseStep, astToPlain } from './parse.js';
+import { domainFor, assumptionsFor, mergeConditions, knownCondition, conditionText } from './domain.js';
 
 // ---------------------------------------------------------------------------
 // Rule catalog
@@ -51,6 +52,12 @@ export const RULES = [
     name: 'Combine Like Terms',
     statement: 'Terms that share the same variable part may be merged: 2x + 3x becomes 5x, and x - x becomes 0.',
     notes: ['The engine verifies the merge by expanding both sides and comparing exactly.']
+  },
+  {
+    id: 'rearrange',
+    name: 'Rearrange Terms',
+    statement: 'Commutativity and associativity allow addition and multiplication terms to be reordered or regrouped without changing their exact value.',
+    notes: ['The exact canonical value and every retained domain restriction must stay unchanged.']
   },
   {
     id: 'distribute',
@@ -135,6 +142,7 @@ export function prepareStep(raw) {
     if (parsed.kind === 'eq') { step.ast = parsed.ast; step.eqv = canonEq(parsed.ast); }
     else if (parsed.kind === 'expr') { step.ast = parsed.ast; step.val = canon(parsed.ast); }
     else if (parsed.kind === 'or') { step.branches = parsed.branches; step.branchVals = parsed.branches.map(canonEq); }
+    step.conditions = domainFor(step);
     return step;
   } catch (err) {
     return {
@@ -532,6 +540,7 @@ function zeroProductFactors(prev) {
     if (!s.zero.isZero()) continue;
     if (s.ast.t !== 'mul') continue;
     const all = flattenMul(s.ast);
+    if (all.some((factor) => { try { return canon(factor).isZero(); } catch { return false; } })) continue;
     const factors = all.filter((f) => {
       try { return canon(f).constRat() === null; } catch (e) { return false; }
     });
@@ -576,7 +585,7 @@ function genericEqFail(prev, cur) {
 // Equation to equation
 // ---------------------------------------------------------------------------
 
-function eqToEq(prev, cur) {
+function eqToEq(prev, cur, options = {}) {
   if (prev.raw.trim() === cur.raw.trim()) {
     return fail('this step is identical to the previous one; every step of a proof must change something.');
   }
@@ -622,13 +631,14 @@ function eqToEq(prev, cur) {
       if (c.isEqual(RF.rat(Rat.int(1)))) return null; // no change; a rewrite may still apply
       const cC = c.isConstantRat();
       if (cC) return ok('mul', describeMul(cC));
-      if (c.den.isConstant()) {
+      const known = mergeConditions(prev.conditions || [], assumptionsFor(options));
+      if (knownCondition({ kind: 'nonzero', value: Val.rf(c), expression: c.toPlain() }, known)) {
         return ok('mul', 'you multiplied both sides by the same expression, ' + c.toPlain()
           + ', which must be defined and nonzero at every solution');
       }
       // A ratio with a variable denominator can erase solutions when that
       // denominator vanishes, so it is not licensed against a zero side.
-      return null;
+      return fail(singleCaseHint(prev, cur) || 'a variable multiplier can add or erase solutions; declare and retain an explicit nonzero assumption before using it.');
     };
     if (rl.prevZero && rr.prevZero) {
       // 0 = 0 to another 0 = 0 shape; treated as a rewrite below.
@@ -647,16 +657,13 @@ function eqToEq(prev, cur) {
         return fail('multiplying both sides by zero destroys the equation; that step is rejected.');
       }
       if (rl.f.isEqual(rr.f) && !rl.f.isEqual(RF.rat(Rat.int(1)))) {
-        const cC = rl.f.isConstantRat();
-        if (cC) return ok('mul', describeMul(cC));
-        return ok('mul', 'you multiplied both sides by the same expression, ' + rl.f.toPlain()
-          + ', which must be defined and nonzero at every solution');
+        return acceptRatio(rl.f);
       }
     }
   }
 
   // Square root undone by squaring, e.g. sqrt(2x + 3) = 5 gives 2x + 3 = 25.
-  const ru = tryRootUndo(prev, cur);
+  const ru = tryRootUndo(prev, cur, options);
   if (ru) return ru;
 
   // Alternative representation of a solved square: x^2 = 9 written as |x| = 3.
@@ -684,7 +691,7 @@ function rewriteNote(ruleId) {
   }
 }
 
-function tryRootUndo(prev, cur) {
+function tryRootUndo(prev, cur, options) {
   for (const side of ['a', 'b']) {
     const node = sideAst(prev.ast, side);
     if (node.t !== 'sqrt') continue;
@@ -697,9 +704,9 @@ function tryRootUndo(prev, cur) {
     try { kSq = valMul(kV, kV); } catch (e) { continue; }
     if (valEqual(curIn, innerV) && valEqual(curK, kSq)) {
       const kC = kV.constRat();
-      let note = 'you squared both sides to undo the square root; the square-root side is never negative, so no extra solutions appear';
-      if (kC && kC.isNeg()) note = 'the right side is negative, so the original equation has no real solutions; the squaring is still a valid consequence';
-      return ok('root', note);
+      if (kC && kC.isNeg()) return fail('a square root is never negative; squaring this equation introduces solutions. Write no solution instead.');
+      if (!knownCondition({ kind: 'nonnegative', value: kV, expression: kV.toPlain() }, mergeConditions(prev.conditions || [], assumptionsFor(options)))) return fail('undoing a square root requires an explicit nonnegative assumption for the other side.');
+      return ok('root', 'you squared both sides to undo the square root while keeping the nonnegative domain');
     }
   }
   return null;
@@ -751,7 +758,7 @@ function countMatches(expectedPairs, cur) {
   return n;
 }
 
-function eqToOr(prev, cur) {
+function eqToOr(prev, cur, options) {
   // Square Root Rule split
   for (const side of ['a', 'b']) {
     const node = sideAst(prev.ast, side);
@@ -785,6 +792,9 @@ function eqToOr(prev, cur) {
     const kC = exp.kV.constRat();
     if (kC && kC.isNeg()) {
       return fail('an absolute value is never negative, so ' + astToPlain(node) + ' has no real solutions; write no solution instead of two cases.');
+    }
+    if (!knownCondition({ kind: 'nonnegative', value: exp.kV, expression: exp.kV.toPlain() }, mergeConditions(prev.conditions || [], assumptionsFor(options)))) {
+      return fail('splitting an absolute value requires a supported explicit or inherited nonnegative condition for the other side; otherwise the split can add solutions.');
     }
     const pairs = [[exp.sV, exp.kV], [exp.sV, exp.kV.neg()]];
     if (matchBranches(pairs, cur)) {
@@ -947,7 +957,7 @@ function quadFormDiscriminant(prev) {
 // or to or
 // ---------------------------------------------------------------------------
 
-function orToOr(prev, cur) {
+function orToOr(prev, cur, options) {
   if (prev.branchVals.length !== cur.branchVals.length) {
     return fail('an or step keeps the same number of branches; solve each branch in place and keep the or form.');
   }
@@ -955,12 +965,12 @@ function orToOr(prev, cur) {
   const ruleIds = [];
   const notes = [];
   for (let i = 0; i < cur.branchVals.length; i++) {
-    const curB = { kind: 'eq', ast: cur.branches[i], eqv: cur.branchVals[i], raw: '@branch' + i };
+    const curB = { kind: 'eq', ast: cur.branches[i], eqv: cur.branchVals[i], raw: '@branch' + i, conditions: cur.conditions || [] };
     let matched = null;
     for (let j = 0; j < prev.branchVals.length; j++) {
       if (usedPrev.has(j)) continue;
-      const prevB = { kind: 'eq', ast: prev.branches[j], eqv: prev.branchVals[j], raw: '@prev' + j + (prev.raw || '') };
-      const res = eqToEq(prevB, curB);
+      const prevB = { kind: 'eq', ast: prev.branches[j], eqv: prev.branchVals[j], raw: '@prev' + j + (prev.raw || ''), conditions: prev.conditions || [] };
+      const res = eqToEq(prevB, curB, options);
       if (res.ok) { matched = { res, j }; break; }
     }
     if (!matched) {
@@ -998,7 +1008,7 @@ function exprToExpr(prev, cur) {
 // Main entry
 // ---------------------------------------------------------------------------
 
-export function checkStep(prev, cur) {
+function checkStepCore(prev, cur, options) {
   if (cur.kind === 'error') return fail(cur.error.message);
   if (prev.kind === 'error') return fail(prev.error.message);
   if (prev.kind === 'none') return fail('the ladder ended at no solution; nothing follows it. Undo or reset to continue.');
@@ -1013,19 +1023,40 @@ export function checkStep(prev, cur) {
   if (prev.kind === 'expr') return exprToExpr(prev, cur);
   if (prev.kind === 'or') {
     if (cur.kind !== 'or') return fail('the previous step has two or more branches; keep the or form and solve each branch in place.');
-    return orToOr(prev, cur);
+    return orToOr(prev, cur, options);
   }
-  if (cur.kind === 'or') return eqToOr(prev, cur);
-  return eqToEq(prev, cur);
+  if (cur.kind === 'or') return eqToOr(prev, cur, options);
+  return eqToEq(prev, cur, options);
+}
+
+export function checkStep(prev, cur, options = {}) {
+  try {
+    const result = checkStepCore(prev, cur, options);
+    if (!result.ok) return result;
+    const declared = assumptionsFor(options);
+    const previous = mergeConditions(prev.conditions || [], declared);
+    const additional = (cur.conditions || []).filter((predicate) => !knownCondition(predicate, previous));
+    if (additional.length) return fail('this step introduces a new domain restriction: ' + additional.map(conditionText).join(', ') + '. Declare that assumption explicitly or choose another step.');
+    const conditions = mergeConditions(previous, cur.conditions || []);
+    return {
+      ...result,
+      conditions,
+      conditional: conditions.length > 0,
+      note: result.note + (conditions.length ? '. Retain domain: ' + conditions.map(conditionText).join(', ') : '')
+    };
+  } catch (error) {
+    return fail(error.message);
+  }
 }
 
 // Convenience: prepare two strings and check.
-export function checkPair(prevRaw, curRaw) {
-  return checkStep(prepareStep(prevRaw), prepareStep(curRaw));
+export function checkPair(prevRaw, curRaw, options = {}) {
+  return checkStep(prepareStep(prevRaw), prepareStep(curRaw), options);
 }
 
 // Does a step match a challenge target? Or branches are compared as sets.
 export function sameStep(target, step) {
+  if (!target || !step || target.kind === 'error' || step.kind === 'error') return false;
   if (target.kind !== step.kind) return false;
   if (target.kind === 'none') return true;
   if (target.kind === 'expr') return valEqual(target.val, step.val);
