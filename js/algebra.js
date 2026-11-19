@@ -61,15 +61,12 @@ export class Rat {
   }
   neg() { return new Rat(-this.n, this.d); }
   abs() { return new Rat(bigAbs(this.n), this.d); }
-  cmp(o) { const l = this.n * o.d, r = o.n * this.d; return l < r ? -1 : l > r ? 1 : 0; }
   isZero() { return this.n === 0n; }
   isNeg() { return this.n < 0n; }
   isInt() { return this.d === 1n; }
   isEqual(o) { return this.n === o.n && this.d === o.d; }
   toString() { return this.d === 1n ? this.n.toString() : this.n.toString() + '/' + this.d.toString(); }
 }
-
-export function ratPlain(r) { return r.toString(); }
 
 export function isPerfectSquare(x) {
   if (x < 0n) return null;
@@ -503,7 +500,6 @@ function ratFromString(s) {
 export function valAdd(a, b) { return a.add(b); }
 export function valSub(a, b) { return a.sub(b); }
 export function valMul(a, b) { return a.mul(b); }
-export function valNeg(a) { return a.neg(); }
 
 export function valDiv(a, b) {
   if (b.isZero()) throw new EngineError('division by zero is undefined', 'domain');

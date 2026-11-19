@@ -469,10 +469,4 @@ export function astToPlain(node) {
   }
 }
 
-export function stepToPlain(step) {
-  if (step.kind === 'none') return 'no solution';
-  if (step.kind === 'or') return step.branches.map(astToPlain).join(' or ');
-  return astToPlain(step.ast);
-}
-
 export { Rat, EngineError };
